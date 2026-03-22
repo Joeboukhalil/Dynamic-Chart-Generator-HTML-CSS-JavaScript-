@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clean Chart Generator</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #111;
+    color: white;
+    text-align: center;
+}
+
+.controls {
+    background: #222;
+    padding: 15px;
+    margin: 20px auto;
+    width: 90%;
+    max-width: 700px;
+    border-radius: 10px;
+}
+
+input, textarea {
+    margin: 5px;
+    padding: 6px;
+    border-radius: 5px;
+    border: none;
+    width: 90%;
+}
+
+textarea {
+    height: 60px;
+}
+
+button {
+    padding: 10px;
+    margin: 10px;
+    border: none;
+    border-radius: 5px;
+    background: #00d4ff;
+    cursor: pointer;
+}
+
+canvas {
+    background: white;
+    margin-top: 20px;
+    border-radius: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Clean Chart Generator</h2>
+
+<div class="controls">
+
+<h3>Vertical Axis</h3>
+Min: <input type="number" id="vMin" value="0">
+Max: <input type="number" id="vMax" value="100">
+Step: <input type="number" id="vStep" value="10">
+
+<h3>Horizontal Axis</h3>
+Min: <input type="number" id="hMin" value="0">
+Max: <input type="number" id="hMax" value="10">
+Step: <input type="number" id="hStep" value="1">
+
+<h3>Axis Names</h3>
+X: <input type="text" id="xName" value="Time">
+Y: <input type="text" id="yName" value="Value">
+
+<h3>Data (comma separated)</h3>
+<textarea id="dataInput">10, 30, 20, 50, 40</textarea>
+
+<br>
+
+<button onclick="drawChart()">Create Chart</button>
+<button onclick="downloadChart()">Download Image</button>
+
+</div>
+
+<canvas id="canvas" width="800" height="500"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+function drawChart() {
+
+    const vMin = parseFloat(document.getElementById("vMin").value);
+    const vMax = parseFloat(document.getElementById("vMax").value);
+    const vStep = parseFloat(document.getElementById("vStep").value);
+
+    const hMin = parseFloat(document.getElementById("hMin").value);
+    const hMax = parseFloat(document.getElementById("hMax").value);
+    const hStep = parseFloat(document.getElementById("hStep").value);
+
+    const xName = document.getElementById("xName").value;
+    const yName = document.getElementById("yName").value;
+
+    const rawData = document.getElementById("dataInput").value.split(",");
+    const data = rawData.map(n => parseFloat(n.trim())).filter(n => !isNaN(n));
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const pad = 60;
+    const w = canvas.width - pad*2;
+    const h = canvas.height - pad*2;
+
+    const vCount = (vMax - vMin) / vStep;
+    const hCount = (hMax - hMin) / hStep;
+
+    // GRID
+    ctx.strokeStyle = "#ccc";
+    ctx.fillStyle = "black";
+    ctx.font = "12px Arial";
+
+    for(let i=0;i<=vCount;i++){
+        let y = pad + (h/vCount)*i;
+
+        ctx.beginPath();
+        ctx.moveTo(pad,y);
+        ctx.lineTo(pad+w,y);
+        ctx.stroke();
+
+        let value = vMax - i*vStep;
+        ctx.fillText(value, 10, y+4);
+    }
+
+    for(let i=0;i<=hCount;i++){
+        let x = pad + (w/hCount)*i;
+
+        ctx.beginPath();
+        ctx.moveTo(x,pad);
+        ctx.lineTo(x,pad+h);
+        ctx.stroke();
+
+        let value = hMin + i*hStep;
+        ctx.fillText(value, x-10, pad+h+15);
+    }
+
+    // Axis names
+    ctx.font = "16px Arial";
+    ctx.fillText(xName, canvas.width/2, canvas.height-10);
+
+    ctx.save();
+    ctx.translate(20, canvas.height/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText(yName,0,0);
+    ctx.restore();
+
+    // ✅ ONLY DATA LINE
+    if(data.length > 1){
+
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        data.forEach((val, i) => {
+            let x = pad + (i/(data.length-1)) * w;
+
+            let normalized = (val - vMin) / (vMax - vMin);
+            let y = pad + h - normalized * h;
+
+            if(i === 0){
+                ctx.moveTo(x,y);
+            } else {
+                ctx.lineTo(x,y);
+            }
+        });
+
+        ctx.stroke();
+    }
+}
+
+// Download
+function downloadChart(){
+    const link = document.createElement("a");
+    link.download = "chart.png";
+    link.href = canvas.toDataURL();
+    link.click();
+}
+</script>
+
+</body>
+</html>
